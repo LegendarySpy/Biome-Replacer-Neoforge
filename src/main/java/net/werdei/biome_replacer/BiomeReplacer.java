@@ -1,16 +1,16 @@
 package net.werdei.biome_replacer;
 
 import net.minecraft.core.Holder;
-import net.minecraft.core.LayeredRegistryAccess;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.RegistryLayer;
 import net.minecraft.world.level.biome.Biome;
-import net.neoforged.neoforge.event.server.ServerAboutToStartEvent;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.server.ServerAboutToStartEvent;
 import net.werdei.biome_replacer.config.Config;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -19,81 +19,94 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Mod(BiomeReplacer.MODID)
-@EventBusSubscriber(modid = BiomeReplacer.MODID, bus = EventBusSubscriber.Bus.GAME)
 public class BiomeReplacer {
     public static final String MODID = "biome_replacer";
-
     private static final Logger LOGGER = LogManager.getLogger();
     private static final String LOG_PREFIX = "[BiomeReplacer] ";
 
-    private static Map<Holder<Biome>, Holder<Biome>> rules;
+    private static Map<ResourceKey<Biome>, ResourceKey<Biome>> rules;
+    private static Registry<Biome> biomeRegistry;
 
-    public BiomeReplacer() {
+    public BiomeReplacer(IEventBus modEventBus) {
         Config.createIfAbsent();
+        modEventBus.addListener(this::commonSetup);
+        NeoForge.EVENT_BUS.addListener(this::onServerAboutToStart);
     }
 
-    @SubscribeEvent
-    public static void ServerAboutToStart(ServerAboutToStartEvent event) {
-        log("ServerAboutToStartEvent triggered.");
-        prepareReplacementRules(event.getServer().registries());
-    }
-
-    public static void prepareReplacementRules(LayeredRegistryAccess<RegistryLayer> registryAccess) {
-        log("Preparing replacement rules.");
-        rules = new HashMap<>();
-        var registry = registryAccess.compositeAccess().registryOrThrow(Registries.BIOME);
-
+    private void commonSetup(final FMLCommonSetupEvent event) {
+        log("FMLCommonSetupEvent triggered.");
         Config.reload();
+        rules = new HashMap<>();
         for (var rule : Config.rules.entrySet()) {
-            log("Processing rule: " + rule.getKey() + " -> " + rule.getValue());
-            var oldBiome = getBiomeHolder(rule.getKey(), registry);
-            var newBiome = getBiomeHolder(rule.getValue(), registry);
+            ResourceKey<Biome> oldBiome = createBiomeKey(rule.getKey());
+            ResourceKey<Biome> newBiome = createBiomeKey(rule.getValue());
             if (oldBiome != null && newBiome != null) {
                 rules.put(oldBiome, newBiome);
-                log("Rule added: " + rule.getKey() + " -> " + rule.getValue());
-            } else {
-                logWarn("Failed to add rule for: " + rule.getKey() + " -> " + rule.getValue());
+                log("Rule added: " + oldBiome + " -> " + newBiome);
             }
         }
-
         log("Loaded " + rules.size() + " biome replacement rules");
     }
 
-    private static Holder<Biome> getBiomeHolder(String id, Registry<Biome> registry) {
-        try {
-            ResourceLocation resourceLocation = ResourceLocation.tryParse(id);
-            if (resourceLocation != null) {
-                log("Attempting to fetch biome with ResourceLocation: " + resourceLocation);
-                Biome biome = registry.get(resourceLocation);
-                if (biome != null) {
-                    log("Biome found: " + id);
-                    var resourceKey = registry.getResourceKey(biome);
-                    if (resourceKey.isPresent()) {
-                        log("Resource key found for biome: " + id);
-                        return registry.getHolderOrThrow(resourceKey.get());
-                    }
-                } else {
-                    logWarn("Biome " + id + " not found in registry.");
-                }
-            } else {
-                logWarn("Invalid ResourceLocation for biome ID: " + id);
-            }
-        } catch (Exception e) {
-            logWarn("Error fetching biome holder for ID " + id + ": " + e.getMessage());
+    private ResourceKey<Biome> createBiomeKey(String biomeId) {
+        ResourceLocation location = ResourceLocation.tryParse(biomeId);
+        if (location == null) {
+            logWarn("Invalid biome ID: " + biomeId);
+            return null;
         }
+        return ResourceKey.create(Registries.BIOME, location);
+    }
 
-        logWarn("Biome " + id + " not found. The rule will be ignored.");
-        return null;
+    private void onServerAboutToStart(ServerAboutToStartEvent event) {
+        log("ServerAboutToStartEvent triggered. Verifying biome existence.");
+        biomeRegistry = event.getServer().registryAccess().registryOrThrow(Registries.BIOME);
+        rules.entrySet().removeIf(entry -> {
+            boolean oldExists = biomeRegistry.containsKey(entry.getKey().location());
+            boolean newExists = biomeRegistry.containsKey(entry.getValue().location());
+            if (!oldExists || !newExists) {
+                logWarn("Removing invalid rule: " + entry.getKey() + " -> " + entry.getValue() +
+                        " (Old biome exists: " + oldExists + ", New biome exists: " + newExists + ")");
+                return true;
+            }
+            return false;
+        });
+        log("Verified " + rules.size() + " valid biome replacement rules");
+
+        // Debug: print all rules
+        for (Map.Entry<ResourceKey<Biome>, ResourceKey<Biome>> entry : rules.entrySet()) {
+            log("Rule: " + entry.getKey().location() + " -> " + entry.getValue().location());
+        }
     }
 
     public static Holder<Biome> replaceIfNeeded(Holder<Biome> original) {
-        var replacement = rules.get(original);
-        if (replacement != null) {
-            log("Replacing biome " + original + " with " + replacement);
-        } else {
-            log("No replacement found for biome " + original);
+        if (biomeRegistry == null) {
+            logWarn("Biome registry is not initialized. Skipping replacement.");
+            return original;
         }
-        return replacement == null ? original : replacement;
+
+        ResourceKey<Biome> originalKey = original.unwrapKey().orElse(null);
+        if (originalKey == null) {
+            log("Unable to unwrap ResourceKey for biome: " + original);
+            return original;
+        }
+
+        log("Checking replacement for biome: " + originalKey.location());
+
+        ResourceKey<Biome> replacementKey = rules.get(originalKey);
+        if (replacementKey != null) {
+            log("Found replacement: " + originalKey.location() + " -> " + replacementKey.location());
+            Holder<Biome> replacementHolder = biomeRegistry.getHolder(replacementKey).orElse(null);
+            if (replacementHolder != null) {
+                log("Successfully replaced biome: " + originalKey.location() + " with " + replacementKey.location());
+                return replacementHolder;
+            } else {
+                logWarn("Failed to get holder for replacement biome: " + replacementKey.location());
+                return original;
+            }
+        } else {
+            log("No replacement found for biome: " + originalKey.location());
+            return original;
+        }
     }
 
     public static boolean noReplacements() {
