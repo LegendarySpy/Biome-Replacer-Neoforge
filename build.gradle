@@ -15,6 +15,7 @@ group = mod_group_id
 
 repositories {
     mavenLocal()
+    mavenCentral()
 }
 
 base {
@@ -25,22 +26,22 @@ java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
 runs {
     configureEach {
-        systemProperty 'forge.logging.markers', 'REGISTRIES'
+        systemProperty 'neoforged.logging.markers', 'REGISTRIES'
         systemProperty 'neoforged.logging.console.level', 'debug'
         modSource project.sourceSets.main
     }
 
     client {
-        systemProperty 'forge.enabledGameTestNamespaces', project.mod_id
+        systemProperty 'neoforged.enabledGameTestNamespaces', project.mod_id
     }
 
     server {
-        systemProperty 'forge.enabledGameTestNamespaces', project.mod_id
+        systemProperty 'neoforged.enabledGameTestNamespaces', project.mod_id
         programArgument '--nogui'
     }
 
     gameTestServer {
-        systemProperty 'forge.enabledGameTestNamespaces', project.mod_id
+        systemProperty 'neoforged.enabledGameTestNamespaces', project.mod_id
     }
 
     data {
