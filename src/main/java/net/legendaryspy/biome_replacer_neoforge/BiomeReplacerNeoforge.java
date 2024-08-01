@@ -1,4 +1,4 @@
-package net.werdei.biome_replacer;
+package net.legendaryspy.biome_replacer_neoforge;
 
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
@@ -11,23 +11,23 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.server.ServerAboutToStartEvent;
-import net.werdei.biome_replacer.config.Config;
+import net.legendaryspy.biome_replacer_neoforge.config.Config;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.HashMap;
 import java.util.Map;
 
-@Mod(BiomeReplacer.MODID)
-public class BiomeReplacer {
-    public static final String MODID = "biome_replacer";
+@Mod(BiomeReplacerNeoforge.MODID)
+public class BiomeReplacerNeoforge {
+    public static final String MODID = "biome_replacer_neoforge";
     private static final Logger LOGGER = LogManager.getLogger();
-    private static final String LOG_PREFIX = "[BiomeReplacer] ";
+    private static final String LOG_PREFIX = "[BiomeReplacerNeoforge] ";
 
     private static final Map<ResourceKey<Biome>, ResourceKey<Biome>> rules = new HashMap<>();
     private static Registry<Biome> biomeRegistry;
 
-    public BiomeReplacer(IEventBus modEventBus) {
+    public BiomeReplacerNeoforge(IEventBus modEventBus) {
         Config.createIfAbsent();
         modEventBus.addListener(this::commonSetup);
         NeoForge.EVENT_BUS.addListener(this::onServerAboutToStart);

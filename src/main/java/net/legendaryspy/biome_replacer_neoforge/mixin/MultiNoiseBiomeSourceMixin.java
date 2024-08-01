@@ -1,4 +1,4 @@
-package net.werdei.biome_replacer.mixin;
+package net.legendaryspy.biome_replacer_neoforge.mixin;
 
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.core.Holder;
@@ -6,7 +6,7 @@ import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.BiomeSource;
 import net.minecraft.world.level.biome.Climate;
 import net.minecraft.world.level.biome.MultiNoiseBiomeSource;
-import net.werdei.biome_replacer.BiomeReplacer;
+import net.legendaryspy.biome_replacer_neoforge.BiomeReplacerNeoforge;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -20,29 +20,29 @@ import java.util.stream.Collectors;
 public abstract class MultiNoiseBiomeSourceMixin extends BiomeSource {
 
     @Unique
-    private Climate.ParameterList<Holder<Biome>> biomeReplacer$modifiedParameters;
+    private Climate.ParameterList<Holder<Biome>> biomeReplacerNeoforge$modifiedParameters;
 
     @Inject(method = "parameters", at = @At("RETURN"), cancellable = true)
     private void onParametersReturn(CallbackInfoReturnable<Climate.ParameterList<Holder<Biome>>> cir) {
-        if (biomeReplacer$modifiedParameters == null) {
-            biomeReplacer$findAndReplace(cir.getReturnValue());
+        if (biomeReplacerNeoforge$modifiedParameters == null) {
+            BiomeReplacerNeoforge$findAndReplace(cir.getReturnValue());
         }
-        cir.setReturnValue(biomeReplacer$modifiedParameters);
+        cir.setReturnValue(biomeReplacerNeoforge$modifiedParameters);
     }
 
     @Unique
-    private void biomeReplacer$findAndReplace(Climate.ParameterList<Holder<Biome>> parameterList) {
-        if (BiomeReplacer.noReplacements()) {
-            biomeReplacer$modifiedParameters = parameterList;
-            BiomeReplacer.log("No rules found, not replacing anything");
+    private void BiomeReplacerNeoforge$findAndReplace(Climate.ParameterList<Holder<Biome>> parameterList) {
+        if (BiomeReplacerNeoforge.noReplacements()) {
+            biomeReplacerNeoforge$modifiedParameters = parameterList;
+            BiomeReplacerNeoforge.log("No rules found, not replacing anything");
             return;
         }
 
         List<Pair<Climate.ParameterPoint, Holder<Biome>>> newParameterList = parameterList.values().stream()
-                .map(value -> new Pair<>(value.getFirst(), BiomeReplacer.replaceIfNeeded(value.getSecond())))
+                .map(value -> new Pair<>(value.getFirst(), BiomeReplacerNeoforge.replaceIfNeeded(value.getSecond())))
                 .collect(Collectors.toList());
 
-        biomeReplacer$modifiedParameters = new Climate.ParameterList<>(newParameterList);
-        BiomeReplacer.log("Biomes replaced successfully");
+        biomeReplacerNeoforge$modifiedParameters = new Climate.ParameterList<>(newParameterList);
+        BiomeReplacerNeoforge.log("Biomes replaced successfully");
     }
 }

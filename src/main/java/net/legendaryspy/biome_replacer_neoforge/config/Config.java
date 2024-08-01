@@ -1,18 +1,17 @@
-package net.werdei.biome_replacer.config;
+package net.legendaryspy.biome_replacer_neoforge.config;
 
 import net.neoforged.fml.loading.FMLPaths;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 
 public class Config {
-    private static final String FILE_NAME = "biome_replacer.properties";
+    private static final String FILE_NAME = "biome_replacer_neoforge.properties";
     private static final Path FILE_PATH = FMLPaths.CONFIGDIR.get().resolve(FILE_NAME);
 
     public static Map<String, String> rules = new HashMap<>();
