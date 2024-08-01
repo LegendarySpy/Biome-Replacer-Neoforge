@@ -24,7 +24,7 @@ public class BiomeReplacer {
     private static final Logger LOGGER = LogManager.getLogger();
     private static final String LOG_PREFIX = "[BiomeReplacer] ";
 
-    private static Map<ResourceKey<Biome>, ResourceKey<Biome>> rules;
+    private static final Map<ResourceKey<Biome>, ResourceKey<Biome>> rules = new HashMap<>();
     private static Registry<Biome> biomeRegistry;
 
     public BiomeReplacer(IEventBus modEventBus) {
@@ -36,15 +36,19 @@ public class BiomeReplacer {
     private void commonSetup(final FMLCommonSetupEvent event) {
         log("FMLCommonSetupEvent triggered.");
         Config.reload();
-        rules = new HashMap<>();
-        for (var rule : Config.rules.entrySet()) {
-            ResourceKey<Biome> oldBiome = createBiomeKey(rule.getKey());
-            ResourceKey<Biome> newBiome = createBiomeKey(rule.getValue());
+        rules.clear();
+
+        Config.rules.forEach((key, value) -> {
+            ResourceKey<Biome> oldBiome = createBiomeKey(key);
+            ResourceKey<Biome> newBiome = createBiomeKey(value);
             if (oldBiome != null && newBiome != null) {
                 rules.put(oldBiome, newBiome);
                 log("Rule added: " + oldBiome + " -> " + newBiome);
+            } else {
+                logWarn("Invalid biome key(s): " + key + " or " + value);
             }
-        }
+        });
+
         log("Loaded " + rules.size() + " biome replacement rules");
     }
 
@@ -60,6 +64,7 @@ public class BiomeReplacer {
     private void onServerAboutToStart(ServerAboutToStartEvent event) {
         log("ServerAboutToStartEvent triggered. Verifying biome existence.");
         biomeRegistry = event.getServer().registryAccess().registryOrThrow(Registries.BIOME);
+
         rules.entrySet().removeIf(entry -> {
             boolean oldExists = biomeRegistry.containsKey(entry.getKey().location());
             boolean newExists = biomeRegistry.containsKey(entry.getValue().location());
@@ -70,12 +75,11 @@ public class BiomeReplacer {
             }
             return false;
         });
+
         log("Verified " + rules.size() + " valid biome replacement rules");
 
         // Debug: print all rules
-        for (Map.Entry<ResourceKey<Biome>, ResourceKey<Biome>> entry : rules.entrySet()) {
-            log("Rule: " + entry.getKey().location() + " -> " + entry.getValue().location());
-        }
+        rules.forEach((key, value) -> log("Rule: " + key.location() + " -> " + value.location()));
     }
 
     public static Holder<Biome> replaceIfNeeded(Holder<Biome> original) {
@@ -95,14 +99,12 @@ public class BiomeReplacer {
         ResourceKey<Biome> replacementKey = rules.get(originalKey);
         if (replacementKey != null) {
             log("Found replacement: " + originalKey.location() + " -> " + replacementKey.location());
-            Holder<Biome> replacementHolder = biomeRegistry.getHolder(replacementKey).orElse(null);
-            if (replacementHolder != null) {
-                log("Successfully replaced biome: " + originalKey.location() + " with " + replacementKey.location());
-                return replacementHolder;
-            } else {
-                logWarn("Failed to get holder for replacement biome: " + replacementKey.location());
-                return original;
-            }
+            return biomeRegistry.getHolder(replacementKey)
+                    .flatMap(holder -> holder.unwrapKey().map(key -> (Holder<Biome>) holder)) // Ensure compatibility
+                    .orElseGet(() -> {
+                        logWarn("Failed to get holder for replacement biome: " + replacementKey.location());
+                        return original;
+                    });
         } else {
             log("No replacement found for biome: " + originalKey.location());
             return original;
@@ -110,7 +112,7 @@ public class BiomeReplacer {
     }
 
     public static boolean noReplacements() {
-        return rules == null || rules.isEmpty();
+        return rules.isEmpty();
     }
 
     public static void log(String message) {

@@ -13,43 +13,36 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Mixin(MultiNoiseBiomeSource.class)
-public abstract class MultiNoiseBiomeSourceMixin extends BiomeSource
-{
-    @Unique
-    private Climate.ParameterList<Holder<Biome>> biome_replacer$modifiedParameters = null;
+public abstract class MultiNoiseBiomeSourceMixin extends BiomeSource {
 
+    @Unique
+    private Climate.ParameterList<Holder<Biome>> biomeReplacer$modifiedParameters;
 
     @Inject(method = "parameters", at = @At("RETURN"), cancellable = true)
-    private void parameters(CallbackInfoReturnable<Climate.ParameterList<Holder<Biome>>> cir)
-    {
-        if (biome_replacer$modifiedParameters == null)
-            biome_replacer$findAndReplace(cir.getReturnValue());
-        cir.setReturnValue(biome_replacer$modifiedParameters);
+    private void onParametersReturn(CallbackInfoReturnable<Climate.ParameterList<Holder<Biome>>> cir) {
+        if (biomeReplacer$modifiedParameters == null) {
+            biomeReplacer$findAndReplace(cir.getReturnValue());
+        }
+        cir.setReturnValue(biomeReplacer$modifiedParameters);
     }
 
     @Unique
-    private void biome_replacer$findAndReplace(Climate.ParameterList<Holder<Biome>> parameterList)
-    {
-        if (BiomeReplacer.noReplacements())
-        {
-            biome_replacer$modifiedParameters = parameterList;
+    private void biomeReplacer$findAndReplace(Climate.ParameterList<Holder<Biome>> parameterList) {
+        if (BiomeReplacer.noReplacements()) {
+            biomeReplacer$modifiedParameters = parameterList;
             BiomeReplacer.log("No rules found, not replacing anything");
             return;
         }
 
-        List<Pair<Climate.ParameterPoint, Holder<Biome>>> newParameterList = new ArrayList<>();
+        List<Pair<Climate.ParameterPoint, Holder<Biome>>> newParameterList = parameterList.values().stream()
+                .map(value -> new Pair<>(value.getFirst(), BiomeReplacer.replaceIfNeeded(value.getSecond())))
+                .collect(Collectors.toList());
 
-        for (var value : parameterList.values())
-            newParameterList.add(new Pair<>(
-                    value.getFirst(),
-                    BiomeReplacer.replaceIfNeeded(value.getSecond())
-            ));
-
-        biome_replacer$modifiedParameters = new Climate.ParameterList<>(newParameterList);
+        biomeReplacer$modifiedParameters = new Climate.ParameterList<>(newParameterList);
         BiomeReplacer.log("Biomes replaced successfully");
     }
 }
