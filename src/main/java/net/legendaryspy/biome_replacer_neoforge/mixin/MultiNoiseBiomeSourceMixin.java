@@ -20,20 +20,20 @@ import java.util.stream.Collectors;
 public abstract class MultiNoiseBiomeSourceMixin extends BiomeSource {
 
     @Unique
-    private Climate.ParameterList<Holder<Biome>> biomeReplacerNeoforge$modifiedParameters;
+    private Climate.ParameterList<Holder<Biome>> modifiedParameters;
 
     @Inject(method = "parameters", at = @At("RETURN"), cancellable = true)
     private void onParametersReturn(CallbackInfoReturnable<Climate.ParameterList<Holder<Biome>>> cir) {
-        if (biomeReplacerNeoforge$modifiedParameters == null) {
-            BiomeReplacerNeoforge$findAndReplace(cir.getReturnValue());
+        if (modifiedParameters == null) {
+            findAndReplace(cir.getReturnValue());
         }
-        cir.setReturnValue(biomeReplacerNeoforge$modifiedParameters);
+        cir.setReturnValue(modifiedParameters);
     }
 
     @Unique
-    private void BiomeReplacerNeoforge$findAndReplace(Climate.ParameterList<Holder<Biome>> parameterList) {
+    private void findAndReplace(Climate.ParameterList<Holder<Biome>> parameterList) {
         if (BiomeReplacerNeoforge.noReplacements()) {
-            biomeReplacerNeoforge$modifiedParameters = parameterList;
+            modifiedParameters = parameterList;
             BiomeReplacerNeoforge.log("No rules found, not replacing anything");
             return;
         }
@@ -42,7 +42,7 @@ public abstract class MultiNoiseBiomeSourceMixin extends BiomeSource {
                 .map(value -> new Pair<>(value.getFirst(), BiomeReplacerNeoforge.replaceIfNeeded(value.getSecond())))
                 .collect(Collectors.toList());
 
-        biomeReplacerNeoforge$modifiedParameters = new Climate.ParameterList<>(newParameterList);
+        modifiedParameters = new Climate.ParameterList<>(newParameterList);
         BiomeReplacerNeoforge.log("Biomes replaced successfully");
     }
 }
