@@ -1,46 +1,64 @@
-<!-- modrinth_exclude.start -->
 # Biome Replacer
-Download: 
-[Modrinth](https://modrinth.com/mod/biome-replacer) | 
-[Curseforge](https://www.curseforge.com/minecraft/mc-mods/biome-replacer)
-<!-- modrinth_exclude.end -->
 
-Small mod that replaces one biome with another, without affecting other parts of the generation. 
-Useful for preventing certain datapack biomes from generating, fixing modded biomes 
-not appearing, or polishing up that almost-perfect seed.
+## Description
 
-Configuration is very simple. 
-Find `biome-replacer.properties` in your configuration folder, and put replacement rules in the format
-`old_biome > new_biome`. You can find some examples below.
+Biome Replacer is a small, server-side mod that allows you to replace one biome with another without affecting other aspects of world generation. This versatile tool is perfect for:
 
-Works fully server-side.
+- Preventing specific datapack biomes from generating
+- Ensuring modded biomes appear correctly
+- Fine-tuning an almost-perfect seed
 
-Note that this mod is intended mostly for replacing vanilla and datapack biomes.
-**Biomes added using libraries like TerraBlender or Biolith cannot be replaced**; 
-you should use the mod's config to tweak or remove them instead.  
-That said, this mod can safely be used alongside these libraries, 
-and it's even possible to replace vanilla/datapack biomes *with* modded ones.
+## Configuration
+
+Setting up Biome Replacer is straightforward:
+
+1. Locate the `biome-replacer.properties` file in your config folder
+2. Add replacement rules using the following format:
+   ```
+   old_biome > new_biome
+   ```
+
+**Note**: This mod is primarily designed for replacing vanilla and datapack biomes. While biomes added by libraries like TerraBlender or Biolith cannot be directly replaced, Biome Replacer can be used alongside these libraries. You can replace vanilla or datapack biomes with modded ones.
 
 ## Examples
 
-A case with vanilla biomes. This is what configuration file looks like:
+### Vanilla Biome Replacement
+
+**Configuration:**
 ```
 minecraft:dark_forest > minecraft:cherry_grove
 ```
-And here's how the world looks, before and after:
+
+**Result:**
 ![Dark forest is replaced by a cherry grove](https://raw.githubusercontent.com/WerDei/Biome-Replacer/master/readme-files/example-1.png)
 
-When using Terralith, Lavender Plains biome from Aurora's Decorations won't generate. 
-Here's how we can fix it:
+### Fixing Mod Compatibility
+
+When using Terralith, the Lavender Plains biome from Aurora's Decorations may not generate. Here's how to fix it:
+
+**Configuration:**
 ```
 terralith:lavender_forest > aurorasdeco:lavender_plains
 terralith:lavender_valley > aurorasdeco:lavender_plains
 ```
+
+**Results:**
 ![Lavender Forest is replaced by Lavender Plains](https://raw.githubusercontent.com/WerDei/Biome-Replacer/master/readme-files/example-2.png)
 ![Same area, but from a higher perspective](https://raw.githubusercontent.com/WerDei/Biome-Replacer/master/readme-files/example-3.png)
 
-Spiders are yucky. Let's remove Terralith's Infested caves:
+### Removing Unwanted Biomes
+
+To remove Terralith's Infested caves:
+
+**Configuration:**
 ```
 terralith:cave/infested_caves > minecraft:dripstone_caves
 ```
+
+**Result:**
 ![Infested Caves are replaced by Dropstone Caves](https://raw.githubusercontent.com/WerDei/Biome-Replacer/master/readme-files/example-4.png)
+
+## Credits
+
+- Original mod created by [WerDei](https://modrinth.com/user/WerDei)
+- This version is a port of the original mod, made possible with WerDei's permission and support
