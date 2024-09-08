@@ -6,6 +6,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.biome.Biome;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
@@ -19,7 +20,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.Map;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.Random;
 
 @Mod(BiomeReplacerNeoforge.MODID)
 public class BiomeReplacerNeoforge {
@@ -28,7 +31,9 @@ public class BiomeReplacerNeoforge {
     private static final String LOG_PREFIX = "[Biome_Replacer_Neoforge] ";
 
     private static final Map<ResourceKey<Biome>, ResourceKey<Biome>> rules = new ConcurrentHashMap<>();
+    private static final Map<TagKey<Biome>, List<ResourceKey<Biome>>> tagRules = new ConcurrentHashMap<>();
     private static Registry<Biome> biomeRegistry;
+    private static final Random random = new Random();
 
     public BiomeReplacerNeoforge(IEventBus modEventBus) {
         log("Initializing Biome-Replacer-Neoforge");
@@ -48,7 +53,9 @@ public class BiomeReplacerNeoforge {
         try {
             Config.reload();
             rules.clear();
+            tagRules.clear();
 
+            // Load direct replacement rules
             Config.rules.forEach((key, value) -> {
                 ResourceKey<Biome> oldBiome = createBiomeKey(key);
                 ResourceKey<Biome> newBiome = createBiomeKey(value);
@@ -60,7 +67,22 @@ public class BiomeReplacerNeoforge {
                 }
             });
 
-            log("Loaded " + rules.size() + " biome replacement rules");
+            // Load tag-based replacement rules
+            Config.tagRules.forEach((tagName, replacements) -> {
+                TagKey<Biome> tagKey = TagKey.create(Registries.BIOME, ResourceLocation.tryParse(tagName));
+                List<ResourceKey<Biome>> replacementKeys = replacements.stream()
+                        .map(this::createBiomeKey)
+                        .filter(key -> key != null)
+                        .toList();
+                if (!replacementKeys.isEmpty()) {
+                    tagRules.put(tagKey, replacementKeys);
+                    log("Tag rule added: " + tagKey + " -> " + replacementKeys);
+                } else {
+                    logWarn("Invalid tag rule: " + tagName);
+                }
+            });
+
+            log("Loaded " + rules.size() + " direct biome replacement rules and " + tagRules.size() + " tag rules");
         } catch (Exception e) {
             logError("Failed to load configuration", e);
         }
@@ -68,7 +90,7 @@ public class BiomeReplacerNeoforge {
 
     private ResourceKey<Biome> createBiomeKey(String biomeId) {
         try {
-            ResourceLocation location = ResourceLocation.tryParse(biomeId);
+            ResourceLocation location = ResourceLocation.tryParse(biomeId); // Correct usage
             if (location == null) {
                 logWarn("Invalid biome ID: " + biomeId);
                 return null;
@@ -103,8 +125,21 @@ public class BiomeReplacerNeoforge {
             return false;
         });
 
-        log("Verified " + rules.size() + " valid biome replacement rules");
-        rules.forEach((key, value) -> log("Rule: " + key.location() + " -> " + value.location()));
+        tagRules.entrySet().removeIf(entry -> {
+            List<ResourceKey<Biome>> validReplacements = entry.getValue().stream()
+                    .filter(key -> biomeRegistry.containsKey(key.location()))
+                    .toList();
+            if (validReplacements.isEmpty()) {
+                logWarn("Removing invalid tag rule: " + entry.getKey() + " (No valid replacement biomes)");
+                return true;
+            }
+            entry.setValue(validReplacements);
+            return false;
+        });
+
+        log("Verified " + rules.size() + " valid direct replacement rules and " + tagRules.size() + " valid tag rules");
+        rules.forEach((key, value) -> log("Direct rule: " + key.location() + " -> " + value.location()));
+        tagRules.forEach((key, value) -> log("Tag rule: " + key.location() + " -> " + value.stream().map(rk -> rk.location().toString()).toList()));
     }
 
     private void onWorldLoad(LevelEvent.Load event) {
@@ -112,7 +147,7 @@ public class BiomeReplacerNeoforge {
     }
 
     private void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
-        String message = "Biome Replacer is active with " + rules.size() + " biome replacement rules.";
+        String message = "Biome Replacer is active with " + rules.size() + " direct replacement rules and " + tagRules.size() + " tag rules.";
         event.getEntity().sendSystemMessage(Component.literal(message));
         log("Sent startup message to player: " + event.getEntity().getName().getString());
     }
@@ -132,27 +167,43 @@ public class BiomeReplacerNeoforge {
 
             log("Checking replacement for biome: " + originalKey.location());
 
-            ResourceKey<Biome> replacementKey = rules.get(originalKey);
-            if (replacementKey != null) {
-                log("Found replacement: " + originalKey.location() + " -> " + replacementKey.location());
-                return biomeRegistry.getHolder(replacementKey)
-                        .map(holder -> (Holder<Biome>) holder)
-                        .orElseGet(() -> {
-                            logWarn("Failed to get holder for replacement biome: " + replacementKey.location());
-                            return original;
-                        });
-            } else {
-                log("No replacement found for biome: " + originalKey.location());
-                return original;
+            // Check direct replacements first
+            ResourceKey<Biome> directReplacement = rules.get(originalKey);
+            if (directReplacement != null) {
+                return getBiomeHolder(directReplacement, original);
             }
+
+            // Check tag replacements
+            for (Map.Entry<TagKey<Biome>, List<ResourceKey<Biome>>> entry : tagRules.entrySet()) {
+                if (original.is(entry.getKey())) {
+                    List<ResourceKey<Biome>> possibleReplacements = entry.getValue();
+                    if (!possibleReplacements.isEmpty()) {
+                        ResourceKey<Biome> tagReplacement = possibleReplacements.get(random.nextInt(possibleReplacements.size()));
+                        return getBiomeHolder(tagReplacement, original);
+                    }
+                }
+            }
+
+            log("No replacement found for biome: " + originalKey.location());
+            return original;
         } catch (Exception e) {
             logError("Error during biome replacement", e);
             return original;
         }
     }
 
+    private static Holder<Biome> getBiomeHolder(ResourceKey<Biome> replacementKey, Holder<Biome> fallback) {
+        log("Applying replacement: " + fallback.unwrapKey().orElse(null) + " -> " + replacementKey.location());
+        return biomeRegistry.getHolder(replacementKey)
+                .map(holder -> (Holder<Biome>) holder)
+                .orElseGet(() -> {
+                    logWarn("Failed to get holder for replacement biome: " + replacementKey.location());
+                    return fallback;
+                });
+    }
+
     public static boolean noReplacements() {
-        return rules.isEmpty();
+        return rules.isEmpty() && tagRules.isEmpty();
     }
 
     public static void log(String message) {
