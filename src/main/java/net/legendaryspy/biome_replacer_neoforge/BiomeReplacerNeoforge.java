@@ -34,6 +34,7 @@ public class BiomeReplacerNeoforge {
     private static final Map<TagKey<Biome>, List<ResourceKey<Biome>>> tagRules = new ConcurrentHashMap<>();
     private static Registry<Biome> biomeRegistry;
     private static final Random random = new Random();
+    private static boolean rulesPrepared = false;
 
     public BiomeReplacerNeoforge(IEventBus modEventBus) {
         log("Initializing Biome-Replacer-Neoforge");
@@ -49,7 +50,7 @@ public class BiomeReplacerNeoforge {
         loadConfig();
     }
 
-    private void loadConfig() {
+    private static void loadConfig() {
         try {
             Config.reload();
             rules.clear();
@@ -71,7 +72,7 @@ public class BiomeReplacerNeoforge {
             Config.tagRules.forEach((tagName, replacements) -> {
                 TagKey<Biome> tagKey = TagKey.create(Registries.BIOME, ResourceLocation.tryParse(tagName));
                 List<ResourceKey<Biome>> replacementKeys = replacements.stream()
-                        .map(this::createBiomeKey)
+                        .map(BiomeReplacerNeoforge::createBiomeKey)
                         .filter(key -> key != null)
                         .toList();
                 if (!replacementKeys.isEmpty()) {
@@ -88,9 +89,9 @@ public class BiomeReplacerNeoforge {
         }
     }
 
-    private ResourceKey<Biome> createBiomeKey(String biomeId) {
+    private static ResourceKey<Biome> createBiomeKey(String biomeId) {
         try {
-            ResourceLocation location = ResourceLocation.tryParse(biomeId); // Correct usage
+            ResourceLocation location = ResourceLocation.tryParse(biomeId);
             if (location == null) {
                 logWarn("Invalid biome ID: " + biomeId);
                 return null;
@@ -101,6 +102,7 @@ public class BiomeReplacerNeoforge {
             return null;
         }
     }
+
 
     private void onServerAboutToStart(ServerAboutToStartEvent event) {
         log("ServerAboutToStartEvent triggered. Initializing biome registry...");
@@ -144,12 +146,21 @@ public class BiomeReplacerNeoforge {
 
     private void onWorldLoad(LevelEvent.Load event) {
         log("World loaded. Preparing for biome replacement...");
+        prepareRulesIfNeeded();
     }
 
     private void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
         String message = "Biome Replacer is active with " + rules.size() + " direct replacement rules and " + tagRules.size() + " tag rules.";
         event.getEntity().sendSystemMessage(Component.literal(message));
         log("Sent startup message to player: " + event.getEntity().getName().getString());
+    }
+
+
+    public static void prepareRulesIfNeeded() {
+        if (!rulesPrepared) {
+            loadConfig();
+            rulesPrepared = true;
+        }
     }
 
     public static Holder<Biome> replaceIfNeeded(Holder<Biome> original) {
