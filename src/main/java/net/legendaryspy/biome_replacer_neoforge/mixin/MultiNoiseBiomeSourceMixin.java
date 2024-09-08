@@ -25,6 +25,8 @@ public abstract class MultiNoiseBiomeSourceMixin extends BiomeSource {
     @Inject(method = "parameters", at = @At("RETURN"), cancellable = true)
     private void onParametersReturn(CallbackInfoReturnable<Climate.ParameterList<Holder<Biome>>> cir) {
         if (modifiedParameters == null) {
+            // Lazy-load the biome replacement rules if they haven't been prepared yet
+            BiomeReplacerNeoforge.prepareRulesIfNeeded();
             findAndReplace(cir.getReturnValue());
         }
         cir.setReturnValue(modifiedParameters);
@@ -38,6 +40,7 @@ public abstract class MultiNoiseBiomeSourceMixin extends BiomeSource {
             return;
         }
 
+        // Replace biomes in the parameter list based on the replacement rules
         List<Pair<Climate.ParameterPoint, Holder<Biome>>> newParameterList = parameterList.values().stream()
                 .map(value -> new Pair<>(value.getFirst(), BiomeReplacerNeoforge.replaceIfNeeded(value.getSecond())))
                 .collect(Collectors.toList());
