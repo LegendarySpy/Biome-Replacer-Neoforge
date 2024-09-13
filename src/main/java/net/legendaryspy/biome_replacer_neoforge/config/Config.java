@@ -26,19 +26,18 @@ public class Config {
 
         try (PrintWriter writer = new PrintWriter(file)) {
             writer.println("muteChatInfo = false");
+            writer.println("# Mute chat info on player join (true/false, default: false)");
             writer.println("# Put your rules here in the format:");
             writer.println("# old_biome > new_biome");
             writer.println("# ");
             writer.println("# Examples (remove # in front of one to activate it):");
             writer.println("# minecraft:dark_forest > minecraft:cherry_grove");
             writer.println("# terralith:lavender_forest > aurorasdeco:lavender_plains");
-            writer.println("# terralith:lavender_valley > aurorasdeco:lavender_plains");
             writer.println("# terralith:cave/infested_caves > minecraft:dripstone_caves");
+            writer.println("# ");
             writer.println("# for mass biome replacement use biome tags");
             writer.println("# #minecraft:is_forest > minecraft:desert");
             writer.println("# #minecraft:is_mountain > minecraft:badlands");
-            writer.println("# ");
-            writer.println("# Mute chat info on player join (true/false, default: false)");
         } catch (IOException e) {
             throw new RuntimeException("Failed to create config file", e);
         }
