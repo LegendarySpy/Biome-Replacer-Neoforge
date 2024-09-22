@@ -2,7 +2,7 @@
   "required": true,
   "minVersion": "0.8",
   "package": "net.legendaryspy.biome_replacer_neoforge.mixin",
-  "compatibilityLevel": "JAVA_17",
+  "compatibilityLevel": "JAVA_21",
   "mixins": [
     "MultiNoiseBiomeSourceMixin"
   ],
