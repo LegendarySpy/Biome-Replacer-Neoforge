@@ -33,18 +33,18 @@ public class Config {
         try (PrintWriter writer = new PrintWriter(file)) {
             // Default settings and instructions for users
             writer.println("muteChatInfo = false");
-            writer.println("# Mute chat info when a player joins (true/false, default: false)");
-            writer.println("# ");
-            writer.println("# Define biome replacement rules below:");
-            writer.println("# Syntax: old_biome > new_biome");
-            writer.println("# ");
-            writer.println("# Example rules (remove '#' to activate):");
-            writer.println("# minecraft:dark_forest > minecraft:cherry_grove");
-            writer.println("# terralith:lavender_forest > aurorasdeco:lavender_plains");
-            writer.println("# ");
-            writer.println("# For biome tags, use '#' as prefix:");
-            writer.println("# #minecraft:is_forest > minecraft:desert");
-            writer.println("# #minecraft:is_mountain > minecraft:badlands");
+            writer.println("! Mute chat info when a player joins (true/false, default: false)");
+            writer.println("! ");
+            writer.println("! Define biome replacement rules below:");
+            writer.println("! Syntax: old_biome > new_biome");
+            writer.println("! ");
+            writer.println("! Example rules (remove '!' to activate):");
+            writer.println("! minecraft:dark_forest > minecraft:cherry_grove");
+            writer.println("! terralith:lavender_forest > aurorasdeco:lavender_plains");
+            writer.println("! ");
+            writer.println("! For biome tags, use '#' as prefix:");
+            writer.println("! #minecraft:is_forest > minecraft:desert");
+            writer.println("! #minecraft:is_mountain > minecraft:badlands");
         } catch (IOException e) {
             throw new RuntimeException("Failed to create config file", e);
         }
@@ -65,8 +65,8 @@ public class Config {
             while (reader.hasNextLine()) {
                 String line = reader.nextLine().trim();
 
-                // Skip comments and empty lines
-                if (line.isEmpty() || line.startsWith("#")) continue;
+                // Skip comments (starting with '!') and empty lines
+                if (line.isEmpty() || line.startsWith("!")) continue;
 
                 // Handle configuration options (e.g., muteChatInfo)
                 if (line.contains("=")) {
