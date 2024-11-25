@@ -2,6 +2,8 @@ buildscript {
     repositories {
         maven { url = 'https://repo.spongepowered.org/repository/maven-public/' }
         mavenCentral()
+        maven { url = 'https://maven.parchmentmc.org' } // Add this line
+
     }
     dependencies {
         classpath 'org.spongepowered:mixingradle:0.7-SNAPSHOT'
