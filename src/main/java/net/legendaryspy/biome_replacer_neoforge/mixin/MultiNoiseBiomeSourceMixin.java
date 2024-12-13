@@ -16,13 +16,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Mixin(MultiNoiseBiomeSource.class)
-public abstract class MultiNoiseBiomeSourceMixin extends BiomeSource {
+@Mixin(value = MultiNoiseBiomeSource.class, priority = Integer.MIN_VALUE)
+public abstract class MultiNoiseBiomeSourceMixin extends BiomeSource{
 
     @Unique
     private Climate.ParameterList<Holder<Biome>> modifiedParameters;
 
-    @Inject(method = "parameters", at = @At("RETURN"), cancellable = true)
+    @Inject(method = "parameters", at = @At("TAIL"), cancellable = true)
     private void onParametersReturn(CallbackInfoReturnable<Climate.ParameterList<Holder<Biome>>> cir) {
         if (modifiedParameters == null) {
             // Lazy-load the biome replacement rules if they haven't been prepared yet
@@ -36,16 +36,16 @@ public abstract class MultiNoiseBiomeSourceMixin extends BiomeSource {
     private void findAndReplace(Climate.ParameterList<Holder<Biome>> parameterList) {
         if (BiomeReplacerNeoforge.noReplacements()) {
             modifiedParameters = parameterList;
-            BiomeReplacerNeoforge.log("No rules found, not replacing anything");
+            BiomeReplacerNeoforge.log("No rules found, skipping replacements");
             return;
         }
 
         // Replace biomes in the parameter list based on the replacement rules
-        List<Pair<Climate.ParameterPoint, Holder<Biome>>> newParameterList = parameterList.values().stream()
-                .map(value -> new Pair<>(value.getFirst(), BiomeReplacerNeoforge.replaceIfNeeded(value.getSecond())))
+        List<Pair<Climate.ParameterPoint, Holder<Biome>>> updatedParameterList = parameterList.values().stream()
+                .map(entry -> new Pair<>(entry.getFirst(), BiomeReplacerNeoforge.replaceIfNeeded(entry.getSecond())))
                 .collect(Collectors.toList());
 
-        modifiedParameters = new Climate.ParameterList<>(newParameterList);
-        BiomeReplacerNeoforge.log("Biomes replaced successfully");
+        modifiedParameters = new Climate.ParameterList<>(updatedParameterList);
+        BiomeReplacerNeoforge.log("Successfully applied biome replacements after all other mods");
     }
 }
