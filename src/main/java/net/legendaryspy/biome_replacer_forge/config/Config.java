@@ -15,7 +15,7 @@ import java.util.List;
 public class Config {
 
     // Config file name and location
-    private static final String FILE_NAME = "biome_replacer_neoforge.properties";
+    private static final String FILE_NAME = "biome_replacer_forge.properties";
     private static final Path FILE_PATH = FMLPaths.CONFIGDIR.get().resolve(FILE_NAME);
 
     // Biome replacement rules

@@ -5,8 +5,8 @@ issueTrackerURL="https://github.com/LegendarySpy/Biome-Replacer-Neoforge/issues"
 
 [[mods]]
 modId="biome_replacer"
-version="1.2.1"
-displayName="Biome Replacer" #mandatory
+version="1.3"
+displayName="Biome Replacer Neoforge" #mandatory
 updateJSONURL="https://api.modrinth.com/updates/biome-replacer-neoforge/forge_updates.json"
 displayURL="https://modrinth.com/mod/biome-replacer-neoforge"
 logoFile="icon.png"
