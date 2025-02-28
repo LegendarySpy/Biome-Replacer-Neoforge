@@ -17,6 +17,7 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.legendaryspy.biome_replacer_forge.config.Config;
+import net.legendaryspy.biome_replacer_forge.config.Config.BiomeReplacement;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -28,11 +29,23 @@ public class BiomeReplacer {
     private static final Logger LOGGER = LogManager.getLogger();
     private static final String LOG_PREFIX = "[BiomeReplacer] ";
 
-    private static final Map<ResourceKey<Biome>, ResourceKey<Biome>> directRules = new HashMap<>();
-    private static final Map<TagKey<Biome>, List<ResourceKey<Biome>>> tagRules = new HashMap<>();
+    // Changed from simple mapping to biome with probability info
+    private static final Map<ResourceKey<Biome>, List<ReplacementEntry>> directRules = new HashMap<>();
+    private static final Map<TagKey<Biome>, List<ReplacementEntry>> tagRules = new HashMap<>();
     private static Registry<Biome> biomeRegistry;
     private static final Random random = new Random();
     private static boolean rulesPrepared = false;
+
+    // Class to store biome replacement with probability
+    private static class ReplacementEntry {
+        public final ResourceKey<Biome> targetBiome;
+        public final double probability;
+
+        public ReplacementEntry(ResourceKey<Biome> targetBiome, double probability) {
+            this.targetBiome = targetBiome;
+            this.probability = probability;
+        }
+    }
 
     public BiomeReplacer() {
         // Register ourselves for server and other game events
@@ -62,8 +75,16 @@ public class BiomeReplacer {
     @SubscribeEvent
     public void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
         if (!Config.muteChatInfo) {
-            String message = "Biome Replacer is active with " + directRules.size() +
-                    " direct replacement rules and " + tagRules.size() + " tag rules.";
+            int totalDirectRules = directRules.values().stream()
+                    .mapToInt(List::size)
+                    .sum();
+
+            int totalTagRules = tagRules.values().stream()
+                    .mapToInt(List::size)
+                    .sum();
+
+            String message = "Biome Replacer is active with " + totalDirectRules +
+                    " direct replacement rules and " + totalTagRules + " tag rules.";
             event.getEntity().sendSystemMessage(Component.literal(message));
             log("Sent startup message to player: " + event.getEntity().getName().getString());
         }
@@ -86,10 +107,11 @@ public class BiomeReplacer {
             // Load direct replacement rules
             Config.rules.forEach((key, value) -> {
                 ResourceKey<Biome> oldBiome = createBiomeKey(key);
-                ResourceKey<Biome> newBiome = createBiomeKey(value);
+                ResourceKey<Biome> newBiome = createBiomeKey(value.targetBiome);
                 if (oldBiome != null && newBiome != null) {
-                    directRules.put(oldBiome, newBiome);
-                    log("Rule added: " + oldBiome + " -> " + newBiome);
+                    directRules.computeIfAbsent(oldBiome, k -> new ArrayList<>())
+                            .add(new ReplacementEntry(newBiome, value.probability));
+                    log("Rule added: " + oldBiome + " -> " + newBiome + " (prob: " + value.probability + ")");
                 }
             });
 
@@ -98,13 +120,15 @@ public class BiomeReplacer {
                 Config.tagRules.forEach((tagName, replacements) -> {
                     try {
                         TagKey<Biome> tagKey = TagKey.create(Registries.BIOME, new ResourceLocation(tagName));
-                        List<ResourceKey<Biome>> replacementKeys = replacements.stream()
-                                .map(BiomeReplacer::createBiomeKey)
-                                .filter(Objects::nonNull)
-                                .toList();
-                        if (!replacementKeys.isEmpty()) {
-                            tagRules.put(tagKey, replacementKeys);
-                            log("Tag rule added: " + tagKey + " -> " + replacementKeys);
+
+                        for (BiomeReplacement replacement : replacements) {
+                            ResourceKey<Biome> replacementKey = createBiomeKey(replacement.targetBiome);
+                            if (replacementKey != null) {
+                                tagRules.computeIfAbsent(tagKey, k -> new ArrayList<>())
+                                        .add(new ReplacementEntry(replacementKey, replacement.probability));
+                                log("Tag rule added: " + tagKey + " -> " + replacementKey +
+                                        " (prob: " + replacement.probability + ")");
+                            }
                         }
                     } catch (Exception e) {
                         logWarn("Invalid tag rule: " + tagName);
@@ -112,8 +136,11 @@ public class BiomeReplacer {
                 });
             }
 
-            log("Loaded " + directRules.size() + " direct biome replacement rules and " +
-                    tagRules.size() + " tag rules");
+            int totalDirectRules = directRules.values().stream().mapToInt(List::size).sum();
+            int totalTagRules = tagRules.values().stream().mapToInt(List::size).sum();
+
+            log("Loaded " + totalDirectRules + " direct biome replacement rules and " +
+                    totalTagRules + " tag rules");
         } catch (Exception e) {
             logError("Failed to load configuration", e);
         }
@@ -126,25 +153,41 @@ public class BiomeReplacer {
         }
 
         log("Verifying biome existence...");
+
+        // Verify direct rules
         directRules.entrySet().removeIf(entry -> {
-            boolean oldExists = biomeRegistry.containsKey(entry.getKey().location());
-            boolean newExists = biomeRegistry.containsKey(entry.getValue().location());
-            if (!oldExists || !newExists) {
-                logWarn("Removing invalid rule: " + entry.getKey() + " -> " + entry.getValue());
+            boolean sourceExists = biomeRegistry.containsKey(entry.getKey().location());
+            if (!sourceExists) {
+                logWarn("Removing invalid source biome: " + entry.getKey());
                 return true;
             }
-            return false;
+
+            // Filter invalid target biomes
+            entry.getValue().removeIf(replacement -> {
+                boolean targetExists = biomeRegistry.containsKey(replacement.targetBiome.location());
+                if (!targetExists) {
+                    logWarn("Removing invalid target biome: " + replacement.targetBiome);
+                    return true;
+                }
+                return false;
+            });
+
+            return entry.getValue().isEmpty();
         });
 
+        // Verify tag rules
         tagRules.entrySet().removeIf(entry -> {
-            List<ResourceKey<Biome>> validReplacements = entry.getValue().stream()
-                    .filter(key -> biomeRegistry.containsKey(key.location()))
-                    .toList();
-            if (validReplacements.isEmpty()) {
-                logWarn("Removing invalid tag rule: " + entry.getKey());
-                return true;
-            }
-            return false;
+            // Filter invalid target biomes
+            entry.getValue().removeIf(replacement -> {
+                boolean targetExists = biomeRegistry.containsKey(replacement.targetBiome.location());
+                if (!targetExists) {
+                    logWarn("Removing invalid target biome: " + replacement.targetBiome);
+                    return true;
+                }
+                return false;
+            });
+
+            return entry.getValue().isEmpty();
         });
     }
 
@@ -170,20 +213,17 @@ public class BiomeReplacer {
             }
 
             // Check direct replacements first
-            ResourceKey<Biome> directReplacement = directRules.get(originalKey);
-            if (directReplacement != null) {
-                return getBiomeHolder(directReplacement, original);
+            List<ReplacementEntry> directReplacements = directRules.get(originalKey);
+            if (directReplacements != null && !directReplacements.isEmpty()) {
+                return handleProbabilisticReplacement(directReplacements, original);
             }
 
             // Check tag replacements
-            for (Map.Entry<TagKey<Biome>, List<ResourceKey<Biome>>> entry : tagRules.entrySet()) {
+            for (Map.Entry<TagKey<Biome>, List<ReplacementEntry>> entry : tagRules.entrySet()) {
                 if (original.is(entry.getKey())) {
-                    List<ResourceKey<Biome>> possibleReplacements = entry.getValue();
-                    if (!possibleReplacements.isEmpty()) {
-                        ResourceKey<Biome> tagReplacement = possibleReplacements.get(
-                                random.nextInt(possibleReplacements.size())
-                        );
-                        return getBiomeHolder(tagReplacement, original);
+                    List<ReplacementEntry> tagReplacements = entry.getValue();
+                    if (!tagReplacements.isEmpty()) {
+                        return handleProbabilisticReplacement(tagReplacements, original);
                     }
                 }
             }
@@ -193,6 +233,19 @@ public class BiomeReplacer {
             logError("Error during biome replacement", e);
             return original;
         }
+    }
+
+    private static Holder<Biome> handleProbabilisticReplacement(List<ReplacementEntry> replacements, Holder<Biome> original) {
+        // Roll for each replacement based on probability
+        for (ReplacementEntry entry : replacements) {
+            if (random.nextDouble() <= entry.probability) {
+                // This replacement was selected
+                return getBiomeHolder(entry.targetBiome, original);
+            }
+        }
+
+        // If no replacement was selected, keep the original
+        return original;
     }
 
     private static Holder<Biome> getBiomeHolder(ResourceKey<Biome> replacementKey, Holder<Biome> fallback) {

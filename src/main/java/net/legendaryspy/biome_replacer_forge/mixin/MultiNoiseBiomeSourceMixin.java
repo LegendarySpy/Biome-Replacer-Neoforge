@@ -1,12 +1,12 @@
 package net.legendaryspy.biome_replacer_forge.mixin;
 
 import com.mojang.datafixers.util.Pair;
-import net.legendaryspy.biome_replacer_forge.BiomeReplacer;
 import net.minecraft.core.Holder;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.BiomeSource;
 import net.minecraft.world.level.biome.Climate;
 import net.minecraft.world.level.biome.MultiNoiseBiomeSource;
+import net.legendaryspy.biome_replacer_forge.BiomeReplacer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
