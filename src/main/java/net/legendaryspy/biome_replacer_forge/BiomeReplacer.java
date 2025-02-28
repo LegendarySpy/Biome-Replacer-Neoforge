@@ -33,8 +33,9 @@ public class BiomeReplacer {
     private static final Map<ResourceKey<Biome>, List<ReplacementEntry>> directRules = new HashMap<>();
     private static final Map<TagKey<Biome>, List<ReplacementEntry>> tagRules = new HashMap<>();
     private static Registry<Biome> biomeRegistry;
-    private static final Random random = new Random();
+    private static Random seedBasedRandom;
     private static boolean rulesPrepared = false;
+    private static long worldSeed;
 
     // Class to store biome replacement with probability
     private static class ReplacementEntry {
@@ -66,6 +67,10 @@ public class BiomeReplacer {
         log("Server starting - initializing biome registry...");
         try {
             biomeRegistry = event.getServer().registryAccess().registryOrThrow(Registries.BIOME);
+            // Get the world seed for consistent biome replacement
+            worldSeed = event.getServer().overworld().getSeed();
+            log("Using world seed for biome replacement: " + worldSeed);
+            seedBasedRandom = new Random(worldSeed);
             prepareReplacementRules();
         } catch (Exception e) {
             logError("Failed to initialize biome registry", e);
@@ -202,7 +207,7 @@ public class BiomeReplacer {
     }
 
     public static Holder<Biome> replaceIfNeeded(Holder<Biome> original) {
-        if (biomeRegistry == null || original == null) {
+        if (biomeRegistry == null || original == null || seedBasedRandom == null) {
             return original;
         }
 
@@ -212,10 +217,14 @@ public class BiomeReplacer {
                 return original;
             }
 
+            // Use biome location and position to create a deterministic hash
+            String biomeId = originalKey.location().toString();
+            int biomeHash = biomeId.hashCode();
+
             // Check direct replacements first
             List<ReplacementEntry> directReplacements = directRules.get(originalKey);
             if (directReplacements != null && !directReplacements.isEmpty()) {
-                return handleProbabilisticReplacement(directReplacements, original);
+                return handleSeedBasedReplacement(directReplacements, original, biomeHash);
             }
 
             // Check tag replacements
@@ -223,7 +232,7 @@ public class BiomeReplacer {
                 if (original.is(entry.getKey())) {
                     List<ReplacementEntry> tagReplacements = entry.getValue();
                     if (!tagReplacements.isEmpty()) {
-                        return handleProbabilisticReplacement(tagReplacements, original);
+                        return handleSeedBasedReplacement(tagReplacements, original, biomeHash);
                     }
                 }
             }
@@ -235,10 +244,15 @@ public class BiomeReplacer {
         }
     }
 
-    private static Holder<Biome> handleProbabilisticReplacement(List<ReplacementEntry> replacements, Holder<Biome> original) {
+    private static Holder<Biome> handleSeedBasedReplacement(List<ReplacementEntry> replacements, Holder<Biome> original, int biomeHash) {
+        // Create a new Random instance seeded with a combination of world seed and biome hash
+        // This ensures the same biome is consistently replaced the same way for a given world seed
+        long combinedSeed = worldSeed ^ biomeHash;
+        Random localRandom = new Random(combinedSeed);
+
         // Roll for each replacement based on probability
         for (ReplacementEntry entry : replacements) {
-            if (random.nextDouble() <= entry.probability) {
+            if (localRandom.nextDouble() <= entry.probability) {
                 // This replacement was selected
                 return getBiomeHolder(entry.targetBiome, original);
             }
