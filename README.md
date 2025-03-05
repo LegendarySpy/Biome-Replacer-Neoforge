@@ -1,7 +1,5 @@
 [Fabric Version](https://modrinth.com/mod/biome-replacer)
 
-# Biome Replacer
-
 ## Description
 
 Biome Replacer is a small, server-side mod that allows you to replace one biome with another without affecting other aspects of world generation. This versatile tool is perfect for:
@@ -14,29 +12,29 @@ Biome Replacer is a small, server-side mod that allows you to replace one biome 
 
 - **Direct Biome Replacement**: Easily swap one biome for another using straightforward rules.
 - **Biome Tag Replacement**: Replace entire groups of biomes at once using biome tags (e.g., `#minecraft:is_forest`).
-- **Chat Notifications**: Optionally disable chat notifications for players when replacement rules are applied.
-- **Flexible Mod Compatibility**: Works alongside biome libraries like TerraBlender and Biolith for seamless integration.
 
+## Mod Compaibility
+
+Note that this mod is intended mostly for replacing vanilla and datapack biomes. Biomes added using libraries like TerraBlender or Biolith cannot be replaced; you should use the mod's config to tweak or remove them instead.
+That said, this mod can safely be used alongside these libraries, and it's even possible to replace vanilla/datapack biomes with modded ones.
 ## Configuration
 
 Setting up Biome Replacer is straightforward:
 
 1. Locate the `biome_replacer_forge.properties` file in your config folder.
 2. Add replacement rules using the following formats:
-   - **Direct Replacement**:
-     ```
-     old_biome > new_biome
-     ```
-   - **Tag-Based Replacement**:
-     ```
-     #tag > new_biome
-     ```
+    - **Direct Replacement**:
+      ```
+      old_biome > new_biome
+      ```
+    - **Tag-Based Replacement**:
+      ```
+      #tag > new_biome
+      ```
 3. Optional: Disable chat notifications by setting:
 ```
 muteChatInfo = true
 ```
-
-**Note**: While biomes added by libraries like TerraBlender or Biolith cannot be directly replaced, you can use Biome Replacer to adjust vanilla or datapack biomes to integrate modded ones.
 
 ## Examples
 
