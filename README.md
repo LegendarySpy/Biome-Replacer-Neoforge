@@ -1,62 +1,71 @@
-# Biome Replacer
+<div align="center">
+  <img src="https://cdn.modrinth.com/data/cached_images/49140522c0371f3ef71e14ad161300767b1fbc80_0.webp" alt="Biome Replacer Banner">
+</div>
 
-![Biome Replacer Banner](https://raw.githubusercontent.com/WerDei/Biome-Replacer/master/readme-files/example-1.png)
+<div align="center">
+  <img src="https://img.shields.io/modrinth/dt/biome-replacer-neoforge?style=flat&logo=modrinth&logoColor=%2300AF5C&label=Modrinth&color=%2300AF5C&link=https%3A%2F%2Fmodrinth.com%2Fmod%2Fbiome-replacer-neoforge" alt="Modrinth Downloads">
+  <img src="https://img.shields.io/curseforge/dt/1078423?style=flat&logo=CurseForge&logoColor=%23F16436&label=CurseForge&color=%23F16436&link=https%3A%2F%2Fwww.curseforge.com%2Fminecraft%2Fmc-mods%2Fbiome-replacer-neoforge" alt="CurseForge Downloads">
+  <img src="https://img.shields.io/badge/MC-1.19+-green?style=flat&logo=minecraft&logoColor=white" alt="Minecraft Versions">
+  <img src="https://img.shields.io/badge/Side-Server-orange?style=flat" alt="Server Side">
+  <img src="https://img.shields.io/github/license/WerDei/Biome-Replacer?style=flat&color=purple" alt="License">
+</div>
 
-> *Transform your Minecraft world, one biome at a time*
->
-> [Fabric Version](https://modrinth.com/mod/biome-replacer)
+<div align="center">
+  <strong>Server-side mod for precise biome control</strong>
+</div>
 
 ## Overview
 
-**Biome Replacer** is a lightweight, server-side mod that lets you precisely replace any biome with another without disrupting world generation mechanics. This preserves terrain features while swapping biome-specific characteristics like colors, mobs, and vegetation.
+**Biome Replacer** lets you control biome distribution without changing terrain generation. Replace any biome with another while preserving the landscape's shape and only changing biome-specific features like colors, mob spawns, and vegetation.
 
-### Perfect For:
+### Use Cases:
 
-- ✅ Removing unwanted datapack biomes
-- ✅ Fixing compatibility issues between mods
-- ✅ Customizing that almost-perfect seed
-- ✅ Creating unique world generation experiences
+* Remove unwanted biomes
+* Fix mod compatibility issues
+* Enhance almost-perfect world seeds
+* Create custom world experiences
+* Complement worldgen mods like Terralith
 
 ## Features
 
-### 🔄 Direct Biome Replacement
-Replace specific biomes with alternatives using simple, intuitive rules.
+* **Simple Biome Swapping:** Replace biomes with an easy rule system
+* **Tag Support:** Replace entire biome categories at once
+* **Server-Side:** No client installation needed
+* **Easy Config:** Simple properties file with intuitive syntax
 
-### 🏷️ Tag-Based Replacement
-Transform entire categories of biomes at once using Minecraft's biome tag system.
+## Experimental Features
+* **Chance based replacement:** Replace any percentage of a biome
 
-### 🖥️ Server-Side Only
-No need for clients to install anything - works 100% on the server side!
 
-### ⚙️ Simple Configuration
-Easy-to-edit properties file with straightforward syntax.
+## Compatibility
 
-## Compatibility Notes
+* **Works With:** Vanilla biomes and most datapack biomes (including Terralith)
+* **Limited Support:** TerraBlender, Biolith or Lithosphere biomes (use their native options instead)
+* **Generally Compatible:** Works with most worldgen mods (report issues [here](https://github.com/WerDei/Biome-Replacer/issues))
 
-- **Works with**: Vanilla and datapack biomes, including Terralith and other world generation datapacks
-- **Limited functionality with**: Biomes added via TerraBlender or Biolith (use their native configs instead)
-- **Can be used alongside**: Any other biome or world generation mod
+## Setup
 
-## Setting Up Biome Replacer
+1. Install the mod on your server (or client if your playing singleplayer)
+2. Run the server once to generate config
+3. Find `biome_replacer.properties` in the `config` folder
+4. Add your replacement rules
 
-1. Install the mod on your server
-2. Run the server once to generate the config file
-3. Navigate to the `config` folder and locate `biome_replacer.properties`
-4. Add your replacement rules using the formats below
+### Configuration
 
-### Configuration Format
+#### Basic Replacement
 
-#### Basic Replacement:
 ```
 minecraft:dark_forest > minecraft:cherry_grove
 ```
 
-#### Tag-Based Replacement:
+#### Tag-Based Replacement
+
 ```
 #minecraft:is_forest > minecraft:desert
 ```
 
-#### Optional Settings:
+#### Options
+
 ```
 # Disable chat notifications
 muteChatInfo = true
@@ -64,51 +73,51 @@ muteChatInfo = true
 
 ## Examples
 
-### Example 1: Swapping Forest Types
+### Forest to Cherry Grove
+
 **Config:**
 ```
 minecraft:dark_forest > minecraft:cherry_grove
 ```
 
-**Before & After:**
-![Dark forest is replaced by a cherry grove](https://raw.githubusercontent.com/WerDei/Biome-Replacer/master/readme-files/example-1.png)
+<div align="center">
+  <img src="https://raw.githubusercontent.com/WerDei/Biome-Replacer/master/readme-files/example-1.png" alt="Dark forest replaced by cherry grove">
+</div>
 
-### Example 2: Mass Biome Replacement
+### All Forests to Desert
+
 **Config:**
 ```
 #minecraft:is_forest > minecraft:desert
 ```
+![Replacing all forests with deserts](https://cdn.modrinth.com/data/cached_images/03a6cb91021fd0a49b3c0be323c7427b097027fe_0.webp)
 
-**Result:** All forest biomes converted to desert landscapes!
 
-### Example 3: Mod Compatibility
+### Mod Integration
+
 **Config:**
 ```
-terralith:lavender_forest > aurorasdeco:lavender_plains 
+terralith:lavender_forest > aurorasdeco:lavender_plains
 terralith:lavender_valley > aurorasdeco:lavender_plains
 ```
 
-**Before & After:**
-![Lavender Forest is replaced by Lavender Plains](https://raw.githubusercontent.com/WerDei/Biome-Replacer/master/readme-files/example-2.png)
+<div align="center">
+  <img src="https://raw.githubusercontent.com/WerDei/Biome-Replacer/master/readme-files/example-2.png" alt="Lavender Forest replaced by Lavender Plains">
+</div>
 
-### Example 4: Removing Problematic Biomes
+### Fixing Problem Biomes
+
 **Config:**
 ```
 terralith:cave/infested_caves > minecraft:dripstone_caves
 ```
 
-**Before & After:**
-![Infested Caves are replaced by Dripstone Caves](https://raw.githubusercontent.com/WerDei/Biome-Replacer/master/readme-files/example-4.png)
+<div align="center">
+  <img src="https://raw.githubusercontent.com/WerDei/Biome-Replacer/master/readme-files/example-4.png" alt="Infested Caves replaced by Dripstone Caves">
+</div>
 
 ## Resources
 
-- [List of Minecraft Biome Tags](https://mcreator.net/wiki/minecraft-biome-tags-list)
-- [Source Code on GitHub](https://github.com/WerDei/Biome-Replacer)
-- [Report Issues](https://github.com/WerDei/Biome-Replacer/issues)
-
-## Credits
-
-- Original mod created by [WerDei](https://modrinth.com/user/WerDei)
-    - This version ported with permission and support from them
-
----
+* [Minecraft Biome Tags Reference](https://mcreator.net/wiki/minecraft-biome-tags-list)
+* [GitHub Repository](https://github.com/LegendarySpy/Biome-Replacer-Neoforge)
+* [Report Issues](https://github.com/LegendarySpy/Biome-Replacer-Neoforge/issues)
